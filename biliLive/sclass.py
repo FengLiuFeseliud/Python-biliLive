@@ -1,8 +1,9 @@
-from abc import ABCMeta, abstractclassmethod, abstractstaticmethod
+from abc import ABCMeta, abstractmethod
 from biliLive.http_api import Link
 import biliLive.bilibiliApi as bapi
 from threading import Thread
 import time
+
 
 class User(Link, metaclass=ABCMeta):
 
@@ -22,7 +23,7 @@ class User(Link, metaclass=ABCMeta):
         # 用户下一级经验
         self.upExp = userData["level"]["next_exp"]
 
-
+# 抽象直播间
 class Live(Link, metaclass=ABCMeta):
 
     def __init__(self, headers, liveData):
@@ -65,6 +66,11 @@ class Live(Link, metaclass=ABCMeta):
 
         msgList = MsgList(self.api.getLiveMsg(self.id))
         self.msg_loop_not_time_list = msgList.getMsgTimeList()
+        self.old_msg_loop_time_list = self.msg_loop_not_time_list.copy()
+        # 弹幕轮查间隙时间 (秒)
+        self.msg_loop_sleep = 2
+
+        self.__code = None
 
     def _getLiveRoomStyle(self):
         roomUserData = self.api.getLiveRoomUserData(self.id)
@@ -80,18 +86,17 @@ class Live(Link, metaclass=ABCMeta):
         }
         return msg
     
-        
-    
     def _msg_loop(self, commandList):
         def loop(commandList):
             while True:
                 msgList = MsgList(self.api.getLiveMsg(self.id))
                 self.msg_loop_time_list = msgList.getMsgTimeList()
                 for msg in msgList:
-                    smsg = msg["msg"].strip(" ").split(" ")
-                    comm = smsg[0].strip(commandList.commandSign)
-                    commandSign = list(smsg[0])[0]
-                    commKey = smsg[1:]
+                    commandSign, comm, commKey  = self.set_command_list(msg["msg"], commandList.commandSign)
+
+                    if not msg["time"] in self.old_msg_loop_time_list:
+                        # 新弹幕回调
+                        self.msg_log(msg)
                     
                     # 查询指令列表
                     if commandSign == commandList.commandSign:
@@ -102,7 +107,8 @@ class Live(Link, metaclass=ABCMeta):
                         self.msg_loop_not_time_list.append(msg["time"])
                         
                         if not comm in commandList.command:
-                            commandList.commandNameError()
+                            self.__code = commandList.commandNameError()
+                            self.command_log(self.__code, msg, "commandNameError")
                             continue
                         
                         # 执行指令对应方法
@@ -110,14 +116,20 @@ class Live(Link, metaclass=ABCMeta):
                             # 检查指令权限
                             if comm in commandList.purviewCommand:
                                 if msg["userId"] in commandList.purview:
-                                    commandList.comman[comm](commKey)
+                                    self.__code = commandList.command[comm](commKey, msg)
+                                    self.command_log(self.__code, msg, comm)
                                 else:
-                                    commandList.purviewError()
+                                    self.__code = commandList.purviewError()
+                                    self.command_log(self.__code, msg, "purviewError")
+                                
+                                continue
 
-                            commandList.command[comm](commKey)
+                            self.__code = commandList.command[comm](commKey, msg)
+                            self.command_log(self.__code, msg, comm)
                         except IndexError:
                             # 执行指令错误回调
-                            commandList.commandError()
+                            self.__code = commandList.commandError()
+                            self.command_log(self.__code, msg, "commandError")
                     
                     #定时重置已执行列表 初始化时将历史弹幕加入
                     time_list_len = len(self.msg_loop_time_list) * 2
@@ -125,7 +137,8 @@ class Live(Link, metaclass=ABCMeta):
                         # 将已执行列表后半变前半 后半用于后续加入
                         self.msg_loop_not_time_list = self.msg_loop_not_time_list[time_list_len - 1:]
                 
-                time.sleep(2)
+                time.sleep(self.msg_loop_sleep)
+                self.old_msg_loop_time_list = self.msg_loop_time_list
                         
         thread = Thread(target=loop, args=(commandList,))
         thread.setDaemon(True)
@@ -137,7 +150,7 @@ class Live(Link, metaclass=ABCMeta):
         def loop(sendTime, sendMsg):
             while True:
                 time.sleep(sendTime)
-                self.send_msg(sendMsg)
+                self.command_log(self.send_msg(sendMsg), None, None)
         
         for sendTime in sendMsgList:
             thread = Thread(target=loop, args=(sendTime, sendMsgList[sendTime]))
@@ -148,19 +161,75 @@ class Live(Link, metaclass=ABCMeta):
             thread.start()
 
         self.send_msg_loop_thread = send_msg_thread_list
+    
+    @abstractmethod
+    def set_command_list(self, msg, commandSign):
+        """
+        设置指令格式, 默认使用 任意指令标识符, 参数空格隔开
+        """
+        command_list = msg.strip(" ").split(" ")
+        commandSign = list(command_list[0])[0]
+        comm = command_list[0].strip(commandSign)
+        commKey = command_list[1:]
+        return commandSign, comm, commKey
 
-    @abstractclassmethod
+    @abstractmethod
     def send_msg(self, msg):
-        pass
+        """
+        调用父类send_msg 发送弹幕\n
+        父类参数: self.id , self._getMsgStyle(msg)
+        """
+        return self.api.sendLiveMsg(self.id, self._getMsgStyle(msg))
     
-    @abstractstaticmethod
-    def send_msg_loop(self):
-        pass
+    @abstractmethod
+    def send_msg_loop(self, sendMsgList):
+        """
+        调用父类send_msg_loop 开启定时发送
+        """
+        self._send_msg_loop(sendMsgList)
     
-    @abstractclassmethod
-    def msg_loop(self):
-        pass
+    @abstractmethod
+    def msg_loop(self, commandList):
+        """
+        调用父类msg_loop 开启弹幕轮查
+        """
+        self._msg_loop(commandList)
+    
+    @abstractmethod
+    def set_time(self, msg_time):
+        """
+        统一格式化时间\n
+        定时发送调用时 msg_time为时间戳\n
+        其他情况 msg_time为时间字符串 "%Y-%m-%d %H:%M:%S"
+        """
+        if type(msg_time) == float:
+            msg_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(msg_time)) 
 
+        return msg_time
+
+    @abstractmethod
+    def msg_log(self, msg):
+        """
+        新弹幕回调
+        """
+        print("[%s] %s: %s" % (self.set_time(msg["time"]), msg["userName"], msg["msg"]))
+
+    @abstractmethod
+    def command_log(self, code, msg, comm):
+        """
+        指令回调
+        """
+        # 定时发送调用时的默认数据格式 code, None, None
+        if msg is None and comm is None:
+            if code == 0:
+                print('[%s] 定时发送成功!' % self.set_time(time.time()))
+            else:
+                print('[%s] 定时发送失败... code:%s' % (self.set_time(time.time()), code))
+            
+            return
+
+        print('[%s] "%s: %s" 执行成功 -> %s' % (self.set_time(msg["time"]), msg["userName"], msg["msg"], comm))
+        
 
 class MsgList:
 
@@ -190,22 +259,33 @@ class MsgList:
         return [msg["timeline"] for msg in self.msgList]
 
 
-class command(metaclass=ABCMeta):
+# 抽象指令对像
+class Command(metaclass=ABCMeta):
 
     def __init__(self, BiliLive):
         self.api = BiliLive
         self.purview = []
         self.purviewCommand = []
         self.command = {}
+        self.commandSign = "/"
     
-    @abstractstaticmethod
+    @abstractmethod
     def commandError(self):
-        pass
+        """
+        commandError 指令参数错误
+        """
+        return self.api.send_msg("您的指令参数填错啦!")
 
-    @abstractstaticmethod
+    @abstractmethod
     def commandNameError(self):
-        pass
+        """
+        commandNameError 指令名字错误
+        """
+        return self.api.send_msg("您的指令名字填错啦!")
     
-    @abstractstaticmethod
+    @abstractmethod
     def purviewError(self):
-        pass
+        """
+        purviewError 指令权限错误
+        """
+        return self.api.send_msg("您的指令权限不足...")

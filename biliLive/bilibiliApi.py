@@ -1,6 +1,5 @@
-from time import sleep
 from biliLive.http_api import Link
-from biliLive.sclass import *
+import biliLive.sclass as sc
 
 BILIBILI_API = "https://api.bilibili.com"
 BILIBILI_LIVE_API = "https://api.live.bilibili.com"
@@ -66,41 +65,43 @@ class BiliApi(Link):
         
 
 
-class BiliUser(User):
+class BiliUser(sc.User):
 
     def __init__(self, headers, userData):
         super().__init__(headers, userData)
 
 
-class BiliLive(Live):
-    
-    def __init__(self, headers, liveData):
-        super().__init__(headers, liveData)
-    
+class BiliLive(sc.Live):
+
+    def set_command_list(self, msg, commandSign):
+        return super().set_command_list(msg, commandSign)
+
     def send_msg(self, msg):
-        return self.api.sendLiveMsg(self.id, self._getMsgStyle(msg))
+        return super().send_msg(msg)
     
-    def msg_loop(self, keywordList):
-        self._msg_loop(keywordList)
-
+    def msg_loop(self, commandList):
+        return super().msg_loop(commandList)
+    
     def send_msg_loop(self, sendMsgList):
-        self._send_msg_loop(sendMsgList)
+        return super().send_msg_loop(sendMsgList)
+    
+    def set_time(self, msg_time):
+        return super().set_time(msg_time)
+    
+    def msg_log(self, msg):
+        return super().msg_log(msg)
+    
+    def command_log(self, code, msg, comm):
+        return super().command_log(code, msg, comm)
 
 
-class commandList(command):
-
-    def __init__(self, BiliLive):
-        self.api = BiliLive
-        self.purview = []
-        self.purviewCommand = []
-        self.command = {}
-        self.commandSign = "/"
+class CommandList(sc.Command):
     
     def commandError(self):
-        code = self.api.send_msg("您的指令参数填错啦!")
+        return super().commandError()
     
     def commandNameError(self):
-        code = self.api.send_msg("您的指令名字填错啦!")
+        return super().commandNameError()
     
     def purviewError(self):
-        code = self.api.send_msg("您的指令权限不足...")
+        return super().purviewError()
