@@ -22,7 +22,7 @@ api = BiliApi(headers)
 live = api.live("房间号")
 
 # 指令方法 /text
-def text(commKey):
+def text(commKey,):
     # commKey是后面空格的参数
     # 如/text xxx xxx xxx 后面的[xxx, xxx, xxx]
     print(f"打印字符串 -> {commKey[0]}")
@@ -266,9 +266,13 @@ live.send_msg_loop_thread[-1].join()
 >     def __init__(self, headers, liveData):
 >         super().__init__(headers, liveData)
 >         
->     def set_command_list(self, msg):
+>     def set_command_list(self, msg, commandSign):
 >         """
 >         设置指令格式, 默认使用 任意指令标识符, 参数空格隔开
+>         
+>         回调参数:
+>         msg: 当前弹幕内容
+>         commandSign: 当前指令标识符
 >         """
 >         return super().set_command_list(msg)
 >         
@@ -276,18 +280,27 @@ live.send_msg_loop_thread[-1].join()
 >         """
 >         调用父类send_msg 发送弹幕\n
 >         父类参数: self.id , self._getMsgStyle(msg)
+>         
+>         参数:
+>         msg: 弹幕内容
 >         """
 >         return super().send_msg(msg)
 >     
 >     def send_msg_loop(self, sendMsgList):
 >         """
 >         调用父类send_msg_loop 开启定时发送
+>         
+>         参数:
+>         sendMsgList: 定时发送字典
 >         """
 >         return super().send_msg_loop(sendMsgList)
 >     
 >     def msg_loop(self, commandList):
 >         """
 >         调用父类msg_loop 开启弹幕轮查
+>         
+>         参数:
+>         commandList: 指令对象
 >         """
 >         return super().msg_loop(commandList)
 >     
@@ -303,12 +316,18 @@ live.send_msg_loop_thread[-1].join()
 > 
 >         return msg_time
 >         
+>         回调参数:
+>         msg_time: 浮点时间戳/时间字符串
 >         """
+>         
 >         return super().set_time(msg_time)
 > 
 >     def msg_log(self, msg):
 >         """
 >         新弹幕回调
+>         
+>         回调参数:
+>         msg: 当前弹幕数据字典
 >         """
 >         return super().msg_log(msg)
 > 
@@ -328,6 +347,11 @@ live.send_msg_loop_thread[-1].join()
 >             return
 > 
 >         print('[%s] "%s: %s" 执行成功 -> %s' % (self.set_time(msg["time"]), msg["userName"], msg["msg"], comm))
+>         
+>         回调参数:
+>         code: 指令返回的值
+>         msg: 当前弹幕数据字典
+>         comm: 当前指令
 >         """
 >         return super().command_log(code, msg, comm)
 >     
@@ -343,7 +367,7 @@ live.send_msg_loop_thread[-1].join()
 > commandList = CommandList(live)
 > 
 > # 指令方法 /text
-> def text(commKey):
+> def text(commKey, msg):
 >     print(f"打印字符串 -> {commKey[0]}")
 > 
 > # 绑定方法 /text
@@ -378,6 +402,14 @@ live.send_msg_loop_thread[-1].join()
 >
 > `commandList ` 实例化的对象使用内部默认设置
 >
+> 
+>
+> 绑定的方法在被调用时会被转入两个参数  **commKey，msg**
+>
+> commKey：指令参数列表 （在默认指令格式下 "/text xxx xxx xxx" 的三个xxx就是指令参数）
+>
+> msg：当前调用指令的 msg 数据
+>
 > ```python
 > from biliLive import BiliApi, CommandList
 > 
@@ -392,11 +424,11 @@ live.send_msg_loop_thread[-1].join()
 > commandList.commandSign = "#"
 > 
 > # 方法 text
-> def text(commKey):
+> def text(commKey, msg):
 >     print(f"打印字符串 -> {commKey[0]}")
 >     
 > # 方法 ptext
-> def ptext(commKey):
+> def ptext(commKey, msg):
 >     print(f"权限指令 打印字符串 -> {commKey[0]}")
 > 
 > # 绑定方法 text 为指令 #text
@@ -472,10 +504,10 @@ live.send_msg_loop_thread[-1].join()
 >             "print": self.print
 >         }
 >     
->     def text(self, commKey):
+>     def text(self, commKey, msg):
 >         print(f"打印字符串 -> {commKey[0]}")
 >        	
->     def ptext(self, commKey):
+>     def ptext(self, commKey, msg):
 >         print(f"purviewCommand 打印字符串 -> {commKey[0]}")
 >     
 >     def commandError(self):
