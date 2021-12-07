@@ -2,6 +2,12 @@
 
 bilibili Python 弹幕机
 
+### **安装**
+
+```python
+pip install pycloudmusic163
+```
+
 ### **简单使用**
 
 ```python
