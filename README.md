@@ -5,7 +5,7 @@ bilibili Python 弹幕机
 ### **安装**
 
 ```python
-pip install pycloudmusic163
+pip install biliLive
 ```
 
 ### **简单使用**
