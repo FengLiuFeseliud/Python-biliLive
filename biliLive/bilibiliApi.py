@@ -61,7 +61,7 @@ class BiliApi(Link):
         if type(liveData) == int:
             return liveData
 
-        return BiliLive(self.headers, liveData)
+        return sc.Live(self.headers, liveData)
         
 
 
@@ -71,7 +71,7 @@ class BiliUser(sc.User):
         super().__init__(headers, userData)
 
 
-class BiliLive(sc.Live):
+class event(sc.Event):
 
     def set_command_list(self, msg, commandSign):
         return super().set_command_list(msg, commandSign)
@@ -79,11 +79,11 @@ class BiliLive(sc.Live):
     def send_msg(self, msg):
         return super().send_msg(msg)
     
-    def msg_loop(self, commandList):
-        return super().msg_loop(commandList)
+    def msg_loop(self):
+        return super().msg_loop()
     
-    def send_msg_loop(self, sendMsgList):
-        return super().send_msg_loop(sendMsgList)
+    def send_msg_loop(self):
+        return super().send_msg_loop()
     
     def set_time(self, msg_time):
         return super().set_time(msg_time)
@@ -95,7 +95,7 @@ class BiliLive(sc.Live):
         return super().command_log(code, msg, comm)
 
 
-class CommandList(sc.Command):
+class commandList(sc.CommandList):
     
     def commandError(self):
         return super().commandError()
