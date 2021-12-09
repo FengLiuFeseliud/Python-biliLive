@@ -10,7 +10,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="biliLive",
-    version="0.1.1",
+    version="0.2.0",
     description="bilibili Python 弹幕机",
     long_description=long_description,
     long_description_content_type="text/markdown",
@@ -27,6 +27,6 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     platforms="any",
-    install_requires=["requests"],
+    install_requires=["requests", "pycloudmusic163"],
     python_requires='>=3.7'
 )

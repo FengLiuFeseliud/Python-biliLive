@@ -93,6 +93,9 @@ class event(sc.Event):
     
     def command_log(self, code, msg, comm):
         return super().command_log(code, msg, comm)
+    
+    def command_err_log(self, code, msg, comm):
+        return super().command_err_log(code, msg, comm)
 
 
 class commandList(sc.CommandList):

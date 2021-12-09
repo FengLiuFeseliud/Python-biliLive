@@ -1,4 +1,4 @@
-from biliLive import BiliApi, Command
+from biliLive import BiliApi, CommandList
 import sqlite3
 
 """
@@ -6,15 +6,20 @@ import sqlite3
 """
 
 # 继承创建指令对像
-class MyCommandList(Command):
+class MyCommandList(CommandList):
 
-    def __init__(self, BiliLive):
-        super().__init__(BiliLive)
+    def __init__(self):
+        super().__init__()
         # 绑定方法 read
         self.command = {
             "read": self.read,
             # 绑定方法 write
             "write": self.write
+        }
+
+        # 定时发送
+        self.timeLoopList = {
+            12: "12s sendMsg"
         }
 
         self.sql = None
@@ -69,16 +74,11 @@ headers["cookie"] += open("cookie.txt", "r").read()
 api = BiliApi(headers)
 
 live = api.live("5545364")
-commandList = MyCommandList(live)
-
-# 定时发送
-sendMsgList = {
-    12: "12s sendMsg"
-}
+live.bind(MyCommandList())
 
 # 开启弹幕轮查
-live.msg_loop(commandList)
+live.msg_loop()
 # 开启定时发送
-live.send_msg_loop(sendMsgList)
+live.send_msg_loop()
 # 堵塞主线程
 input("")

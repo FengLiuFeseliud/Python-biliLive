@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from json.decoder import JSONDecodeError
 from pycloudmusic163 import Music163
+from pycloudmusic163.music163 import MUSIC163_MUSIC_API
 import pycloudmusic163.object as object
 from threading import Thread
 from pydub import AudioSegment
@@ -44,12 +45,12 @@ class PlayCloudMusic(Music163):
         if type(code) != object.my:
             self.__musicEvent.cookie_invalidation(code)
 
-    def _add_music(self, music_object):
-        if type(music_object[0]) != object.music:
-            music_object = (object.music(self.headers, music_object[0]), music_object[1])
-        self.__download_music_list.append(music_object)
+    def _add_music(self, music_object, msg):
+        if type(music_object) != object.music:
+            music_object = object.music(self.headers, music_object)
+        self.__download_music_list.append((music_object, msg))
         # 调用 add_music 事件
-        self.__musicEvent.add_music(music_object[0], self.__play_list,
+        self.__musicEvent.add_music(music_object, self.__play_list,
                                                                     self.__download_music_list)
         return 0
 
@@ -129,7 +130,7 @@ class PlayCloudMusic(Music163):
                         # 如果播放队列小于设置的最小值并且下载队列为空 向下载队列添加歌曲
                         while len(self.__play_list) < self.play_list_cache_len and len(self.__download_music_list) < self.play_list_cache_len:
                             music = random.choice(self.__not_play_music_in_playlist.music_list)
-                            self._add_music((music, None))
+                            self._add_music(music, None)
 
         self.play_music_thread = self.__add_thread(loop)
 
@@ -167,6 +168,7 @@ class PlayCloudMusic(Music163):
         self.download_music_thread = self.__add_thread(loop)
 
 
+# 抽象点歌模块事件
 class MusicEvent(metaclass=ABCMeta):
 
     def __init__(self):
@@ -181,26 +183,21 @@ class MusicEvent(metaclass=ABCMeta):
         pass
 
     @abstractmethod
-    def send_music(self, msuic, msg):
+    def send_music(self, music, msg):
         """
         事件 send_music 向下载队列发送任务
         """
-        try:
-            msuic = self.api.music(msuic)
-        except JSONDecodeError:
-            pass
-        if type(msuic) == int:
-            msuic = self.search(msuic)
-            if type(msuic) == int:
-                return msuic
-            
-            music_id = msuic["songs"][0]["id"]
-            msuic = self.api.music(music_id)
-            return self.api._add_music(msuic), msg
-        
-        return self.api._add_music(msuic), msg
-    
+        music_list = self.api.search(music)
+        if type(music_list) == int:
+            music = self.music(music)
+            if type(music) == int:
+                return music
 
+            return self.api._add_music(music[0], msg)
+        
+        music = object.music(self.api.headers, music_list["songs"][0])
+        return self.api._add_music(music, msg)
+    
     @abstractmethod
     def set_msuic_file_name(self, music_object):
         """

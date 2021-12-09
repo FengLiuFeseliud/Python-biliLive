@@ -1,5 +1,5 @@
 from biliLive.bilibiliApi import BiliApi, commandList, event
-from biliLive.sclass import CommandList, Event
+from biliLive.sclass import CommandList, Event, Live
 from biliLive.music import PlayCloudMusic, MusicEvent, musicEvent
 
 """
