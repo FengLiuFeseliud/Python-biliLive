@@ -1,8 +1,12 @@
-from biliLive import BiliApi, commandList
+import sys
+from biliLive import BiliApi, commandList, liveLog
 
 """
 设置弹幕机
 """
+
+# 一行设置输出统一格式 并将输出内容保存进文件
+liveLog()
 
 headers = BiliApi.bilibili_headers
 headers["cookie"] += open("cookie.txt", "r").read()
@@ -30,6 +34,6 @@ live.bind(MyCommandList)
 # 开启弹幕轮查
 live.msg_loop()
 # 开启定时发送
-live.send_msg_loop()
+live.time_loop()
 # 堵塞主线程
 input("")

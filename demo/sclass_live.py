@@ -1,9 +1,12 @@
 import time
-from biliLive import BiliApi, CommandList, Event
+from biliLive import BiliApi, CommandList, Event, liveLog
 
 """
 继承设置弹幕机
 """
+
+# 一行设置输出统一格式 并将输出内容保存进文件
+liveLog()
 
 # 继承创建Event
 class MyEvent(Event):
@@ -91,7 +94,7 @@ class MyCommandList(CommandList):
 
         # 定时发送
         self.timeLoopList = {
-             12: "12s sendMsg"
+            12: "12s sendMsg"
         }
 
         # 设置指令标识符为 #
@@ -138,6 +141,6 @@ live.bind(MyCommandList(), MyEvent())
 # 开启弹幕轮查
 live.msg_loop()
 # 开启定时发送
-live.send_msg_loop()
+live.time_loop()
 # 堵塞主线程
 input("")

@@ -1,9 +1,12 @@
-from biliLive import BiliApi, CommandList
+from biliLive import BiliApi, CommandList, liveLog
 import sqlite3
 
 """
 自定义 Command 实现弹幕于数据库通信
 """
+
+# 一行设置输出统一格式 并将输出内容保存进文件
+liveLog()
 
 # 继承创建指令对像
 class MyCommandList(CommandList):
@@ -79,6 +82,6 @@ live.bind(MyCommandList())
 # 开启弹幕轮查
 live.msg_loop()
 # 开启定时发送
-live.send_msg_loop()
+live.time_loop()
 # 堵塞主线程
 input("")

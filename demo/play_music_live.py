@@ -1,9 +1,6 @@
 import time
 from pycloudmusic163.music163 import LoginMusic163, Music163
-from biliLive import BiliApi
-from biliLive import CommandList, MusicEvent
-from biliLive.bilibiliApi import event
-from biliLive.music import PlayCloudMusic
+from biliLive import *
 
 
 """
@@ -13,6 +10,10 @@ from biliLive.music import PlayCloudMusic
 网易云音乐API 项目地址:
 https://github.com/FengLiuFeseliud/pycloudmusic163
 """
+
+# 一行设置输出统一格式 并将输出内容保存进文件
+liveLog()
+
 
 # 继承创建点歌事件
 class MyMusicEvent(MusicEvent):
@@ -138,7 +139,6 @@ class MyCommandList(CommandList):
         # https://music.163.com/#/playlist?id=738561159
 
         self.play_list = PlayCloudMusic("./music_play", "6787578252", login_music163())
-        self.play_list.playlist(self.play_list)
 
         # 将自定义点歌模块事件绑定给 PlayCloudMusic 对象
         self.play_list.bind(MyMusicEvent())
@@ -226,5 +226,5 @@ live.bind(MyCommandList(), event())
 # 运行...
 
 live.msg_loop()
-live.send_msg_loop()
+live.time_loop()
 input()

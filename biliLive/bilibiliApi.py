@@ -62,8 +62,6 @@ class BiliApi(Link):
             return liveData
 
         return sc.Live(self.headers, liveData)
-        
-
 
 class BiliUser(sc.User):
 
@@ -82,11 +80,8 @@ class event(sc.Event):
     def msg_loop(self):
         return super().msg_loop()
     
-    def send_msg_loop(self):
-        return super().send_msg_loop()
-    
-    def set_time(self, msg_time):
-        return super().set_time(msg_time)
+    def time_loop(self):
+        return super().time_loop()
     
     def msg_log(self, msg):
         return super().msg_log(msg)
@@ -108,3 +103,12 @@ class commandList(sc.CommandList):
     
     def purviewError(self):
         return super().purviewError()
+
+
+class liveLog(sc.LiveLog):
+
+    def set_log_path(self):
+        return super().set_log_path()
+    
+    def set_log_style(self, log):
+        return super().set_log_style(log)

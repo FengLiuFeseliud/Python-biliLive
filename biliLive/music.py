@@ -1,7 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from json.decoder import JSONDecodeError
 from pycloudmusic163 import Music163
-from pycloudmusic163.music163 import MUSIC163_MUSIC_API
 import pycloudmusic163.object as object
 from threading import Thread
 from pydub import AudioSegment
@@ -174,7 +172,7 @@ class MusicEvent(metaclass=ABCMeta):
     def __init__(self):
         # 被绑定后为点歌模块实例
         self.api = None
-    
+
     @abstractmethod
     def cookie_invalidation(self, code):
         """

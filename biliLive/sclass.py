@@ -1,8 +1,9 @@
 from abc import ABCMeta, abstractmethod
+import os
 from biliLive.http_api import Link
 import biliLive.bilibiliApi as bapi
 from threading import Thread
-import time
+import time, sys
 
 
 class User(Link, metaclass=ABCMeta):
@@ -70,7 +71,6 @@ class Live(Link, metaclass=ABCMeta):
         self.old_msg_loop_time_list = self.msg_loop_not_time_list.copy()
         # 弹幕轮查间隙时间 (秒)
         self.msg_loop_sleep = 2
-
         self.__code = None
     
     def bind(self, commandList=None, event=None):
@@ -169,7 +169,7 @@ class Live(Link, metaclass=ABCMeta):
             time.sleep(jobTime)
             self.__event.command_log(job(), None, None)
     
-    def _send_msg_loop(self):
+    def _time_loop(self):
         send_msg_thread_list = []
         
         for jobTime in self.__commandList.timeLoopList:
@@ -190,8 +190,8 @@ class Live(Link, metaclass=ABCMeta):
     def msg_loop(self):
         self.__event.msg_loop()
     
-    def send_msg_loop(self):
-        self.__event.send_msg_loop()
+    def time_loop(self):
+        self.__event.time_loop()
 
 
 class Event(metaclass=ABCMeta):
@@ -213,7 +213,7 @@ class Event(metaclass=ABCMeta):
         comm = command_list[0].strip(commandSign)
         commKey = command_list[1:]
         return commandSign, comm, commKey
-
+    
     @abstractmethod
     def send_msg(self, msg):
         """
@@ -225,11 +225,11 @@ class Event(metaclass=ABCMeta):
         return self.live.api.sendLiveMsg(self.live.id, self.live._getMsgStyle(msg))
     
     @abstractmethod
-    def send_msg_loop(self):
+    def time_loop(self):
         """
-        事件 send_msg_loop 启动定时发送
+        事件 time_loop 启动定时发送
         """
-        self.live._send_msg_loop()
+        self.live._time_loop()
     
     @abstractmethod
     def msg_loop(self):
@@ -237,29 +237,13 @@ class Event(metaclass=ABCMeta):
         事件 msg_loop 启动弹幕轮查
         """
         self.live._msg_loop()
-    
-    @abstractmethod
-    def set_time(self, msg_time):
-        """
-        统一格式化时间\n
-        定时发送调用时 msg_time为时间戳\n
-        其他情况 msg_time为时间字符串 "%Y-%m-%d %H:%M:%S"
-        默认统一格式为 "%Y-%m-%d %H:%M:%S"
-        参数:
-        msg_time: 浮点时间戳/时间字符串
-        需返回: 格式化后的时间
-        """
-        if type(msg_time) == float:
-            msg_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(msg_time)) 
-
-        return msg_time
 
     @abstractmethod
     def msg_log(self, msg):
         """
         事件 msg_log 新弹幕会经过这里
         """
-        print("[%s] %s: %s" % (self.set_time(msg["time"]), msg["userName"], msg["msg"]))
+        print("%s: %s" % (msg["userName"], msg["msg"]))
 
     @abstractmethod
     def command_log(self, code, msg, comm):
@@ -269,20 +253,20 @@ class Event(metaclass=ABCMeta):
         # 定时发送调用时的默认数据格式 code, None, None
         if msg is None and comm is None:
             if code == 0:
-                print('[%s] 定时发送成功!' % self.set_time(time.time()))
+                print('定时发送成功')
             else:
-                print('[%s] 定时发送失败... code:%s' % (self.set_time(time.time()), code))
+                print('定时发送失败... code:%s' % code)
             
             return
 
-        print('[%s] "%s: %s" 执行成功 -> %s' % (self.set_time(msg["time"]), msg["userName"], msg["msg"], comm))
+        print('"%s: %s" 执行成功 -> %s' % (msg["userName"], msg["msg"], comm))
     
     @abstractmethod
     def command_err_log(self, code, msg, comm):
         """
         事件 command_err_log 指令执行错误
         """
-        print('[%s] "%s: %s" 指令执行错误 -> %s' % (self.set_time(msg["time"]), msg["userName"], msg["msg"], comm))
+        print('"%s: %s" 指令执行错误 -> %s' % (msg["userName"], msg["msg"], comm))
 
 class MsgList:
 
@@ -343,3 +327,53 @@ class CommandList(metaclass=ABCMeta):
         purviewError 指令权限错误
         """
         return self.event.send_msg("您的指令权限不足...")
+
+
+class LiveLog(metaclass=ABCMeta):
+
+    def __init__(self, save_in="./log"):
+        self.__terminal = sys.stdout
+        self.save_in = save_in
+        self.__save_in_obj = None
+        self.save_in_load = False
+
+        self.__set_log_path = self.set_log_path()
+        sys.stdout = self
+
+    def __save_in_open(self):
+        if not os.path.isdir(self.save_in):
+            os.makedirs(self.save_in)
+
+        if not self.save_in_load:
+            self.__save_in_obj = open(self.__set_log_path, "a", encoding="utf-8")
+            self.save_in_load = True
+    
+    def __save_in_close(self):
+        if self.save_in_load:
+            self.__save_in_obj.close()
+            self.save_in_load = False
+    
+    @abstractmethod
+    def set_log_path(self):
+        return time.strftime(f"{self.save_in}/log_%Y_%m_%d_%H_%M_%S.txt", time.localtime())
+    
+    @abstractmethod
+    def set_log_style(self, log):
+        log_time = time.strftime("%H:%M:%S", time.localtime())
+        log_msg = "[%s] %s" % (log_time, log)
+        return log_msg
+    
+    def write(self, log):
+        self.__save_in_open()
+
+        if log != "\n":
+            log = self.set_log_style(log)
+
+        if self.save_in_load:
+            self.__save_in_obj.write(log)
+        self.__terminal.write(log)
+
+        self.__save_in_close()
+    
+    def flush(self):
+        self.__terminal.flush()
