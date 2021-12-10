@@ -20,6 +20,16 @@ bilibili Python 弹幕机
 pip install biliLive
 ```
 
+点歌模块播放使用 pydub 使用请安装依赖 ffmpeg，pyaudio
+
+注意 pyaudio 必须去下面下载 然后使用 `pip install pyaudio的下载路径` 安装
+
+https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyaudio
+
+ffmpeg 这个估计都有 没有的话下载解压将 ffmpeg 目录下的 bin 文件夹加入环境变量
+
+https://ffmpeg.org/download.html
+
 ### **简单使用**
 
 ```python
