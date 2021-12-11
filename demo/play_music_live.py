@@ -226,5 +226,4 @@ live.bind(MyCommandList(), event())
 # 运行...
 
 live.msg_loop()
-live.time_loop()
 input()

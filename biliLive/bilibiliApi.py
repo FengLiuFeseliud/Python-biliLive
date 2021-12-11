@@ -20,7 +20,11 @@ class BiliApi(Link):
     def getLiveRoom(self, room_id):
         api = BILIBILI_LIVE_API + "/xlive/web-room/v1/index/getRoomBaseInfo"
         data = self._link(f"{api}?room_ids={room_id}&req_biz=link-center")
-        return data["data"]["by_room_ids"][room_id] if data["code"] == 0 else data["code"]
+        if data["code"] != 0:
+            return
+
+        for roomId in data["data"]["by_room_ids"]:
+            return data["data"]["by_room_ids"][roomId]
 
     def getLiveRoomUserData(self, room_id):
         api = BILIBILI_LIVE_API + "/xlive/web-room/v1/index/getInfoByUser"
@@ -31,6 +35,11 @@ class BiliApi(Link):
         api = BILIBILI_LIVE_API + "/xlive/web-room/v1/dM/gethistory"
         data = self._link(f'{api}?roomid={room_id}')
         return data["data"]["room"] if data["code"] == 0 else data["code"]
+    
+    def getLiveServer(self, room_id):
+        api =  BILIBILI_LIVE_API + "/xlive/web-room/v1/index/getDanmuInfo"
+        data = self._link(f"{api}?id={room_id}&type=0")
+        return data["data"] if data["code"] == 0 else data["code"]
     
     def sendLiveMsg(self, room_id, msg):
         api = BILIBILI_LIVE_API + "/msg/send"
@@ -60,7 +69,12 @@ class BiliApi(Link):
         liveData = self.getLiveRoom(room_id)
         if type(liveData) == int:
             return liveData
+        
+        liveServer = self.getLiveServer(liveData["room_id"])
+        if type(liveServer) == int:
+            return liveServer
 
+        liveData.update(liveServer)
         return sc.Live(self.headers, liveData)
 
 class BiliUser(sc.User):
@@ -77,8 +91,8 @@ class event(sc.Event):
     def send_msg(self, msg):
         return super().send_msg(msg)
     
-    def msg_loop(self):
-        return super().msg_loop()
+    def msg_loop(sel, debug):
+        return super().msg_loop(debug)
     
     def time_loop(self):
         return super().time_loop()
